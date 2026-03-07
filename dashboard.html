@@ -92,7 +92,7 @@
         
         if(!payload.codigo) return alert("Escribe un código");
         enviarDatos(payload);
-        
+    }
         function generarRecibo(d) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
