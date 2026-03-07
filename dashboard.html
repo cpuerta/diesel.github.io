@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inversiones C&M C.A. | Sistema de Gestión</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #0f172a; --secondary: #f97316; --bg: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; }
+        nav { background: white; padding: 1rem 5%; display: flex; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tabs { display: flex; background: var(--primary); color: white; justify-content: center; gap: 20px; padding: 10px; }
+        .tabs button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; padding: 10px; }
+        .view { display: none; padding: 40px 5%; }
+        .active { display: block; }
+        
+        /* Estilos POS y Formularios */
+        .admin-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 600px; margin: auto; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { background: var(--secondary); color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div style="font-size: 1.5rem; font-weight: 800;">C&M <span style="color:var(--secondary)">INVERSIONES</span></div>
+        <div id="reloj"></div>
+    </nav>
+
+    <div class="tabs">
+        <button onclick="showView('catalogo')"><i class="fas fa-search"></i> CATÁLOGO</button>
+        <button onclick="showView('pos')"><i class="fas fa-cash-register"></i> POS (VENTAS)</button>
+        <button onclick="showView('admin')"><i class="fas fa-box"></i> INVENTARIO</button>
+    </div>
+
+    <section id="catalogo" class="view active">
+        <h2 style="text-align: center;">Buscador de Repuestos</h2>
+        <div class="admin-card">
+            <input type="text" id="searchInput" placeholder="Escriba Código o Motor (Ej: Hilux)...">
+            <button class="btn" onclick="buscarReal()">BUSCAR PIEZA</button>
+            <div id="searchResult"></div>
+        </div>
+    </section>
+
+    <section id="pos" class="view">
+        <div class="admin-card">
+            <h3><i class="fas fa-shopping-cart"></i> Registrar Venta Directa</h3>
+            <p style="font-size: 0.8rem; color: #666;">Al procesar, se descontará automáticamente del stock en Google Sheets.</p>
+            <input type="text" id="posCodigo" placeholder="Código del Artículo">
+            <input type="number" id="posCant" placeholder="Cantidad Vendida">
+            <input type="number" id="posTotal" placeholder="Monto Total $">
+            <button class="btn" style="background: #22c55e;" onclick="procesarVenta()">FINALIZAR VENTA</button>
+        </div>
+    </section>
+
+    <section id="admin" class="view">
+        <div class="admin-card">
+            <h3><i class="fas fa-plus-circle"></i> Agregar Nuevo Stock</h3>
+            <form id="prodForm">
+                <input type="text" id="newCod" placeholder="Código OEM">
+                <select id="newCat">
+                    <option value="Tobera">Tobera</option>
+                    <option value="Embolo">Émbolo</option>
+                    <option value="Junta">Kit de Juntas</option>
+                </select>
+                <input type="text" id="newDesc" placeholder="Descripción">
+                <input type="text" id="newApp" placeholder="Aplicación Motor">
+                <input type="number" id="newStock" placeholder="Cantidad Inicial">
+                <input type="number" id="newPrice" placeholder="Precio Base $">
+                <button type="button" class="btn" onclick="agregarProducto()">GUARDAR EN INVENTARIO</button>
+            </form>
+        </div>
+    </section>
+
+    <script>
+        const WEB_APP_URL = 'TU_URL_DE_APPS_SCRIPT_AQUI';
+
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        async function procesarVenta() {
+            const data = {
+                action: 'registrarVenta',
+                codigo: document.getElementById('posCodigo').value,
+                cantidad: parseInt(document.getElementById('posCant').value),
+                total: document.getElementById('posTotal').value
+            };
+            
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            alert("Venta registrada y stock actualizado en Sheets.");
+        }
+
+        async function agregarProducto() {
+            const data = {
+                action: 'agregarProducto',
+                codigo: document.getElementById('newCod').value,
+                categoria: document.getElementById('newCat').value,
+                desc: document.getElementById('newDesc').value,
+                aplicacion: document.getElementById('newApp').value,
+                stock: document.getElementById('newStock').value,
+                precio: document.getElementById('newPrice').value
+            };
+
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(data) });
+            alert("Producto añadido exitosamente.");
+            document.getElementById('prodForm').reset();
+        }
+
+        // Reloj en tiempo real
+        setInterval(() => {
+            document.getElementById('reloj').innerText = new Date().toLocaleString();
+        }, 1000);
+    </script>
+</body>
+</html>
