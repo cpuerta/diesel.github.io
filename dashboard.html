@@ -3,128 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inversiones C&M C.A. | Gestión Diésel</title>
+    <title>Inversiones C&M C.A. | Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --secondary: #f97316; --accent: #334155; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f1f5f9; color: var(--primary); }
-        
-        nav { background: var(--primary); color: white; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .nav-links button { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 15px; cursor: pointer; border-radius: 5px; margin-left: 10px; transition: 0.3s; }
-        .nav-links button:hover { background: var(--secondary); border-color: var(--secondary); }
-
-        .container { padding: 30px 5%; max-width: 900px; margin: auto; }
-        .view { display: none; animation: fadeIn 0.4s; }
+        :root { --primary: #0f172a; --secondary: #f97316; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; margin: 0; }
+        nav { background: var(--primary); color: white; padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; }
+        .menu button { background: none; border: 1px solid white; color: white; padding: 8px 15px; cursor: pointer; border-radius: 5px; margin-left: 10px; }
+        .container { padding: 30px 5%; max-width: 800px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: none; }
         .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid var(--secondary); }
-        h2 { color: var(--primary); margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        button.main-btn { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
-        button.main-btn:hover { background: #ea580c; transform: translateY(-2px); }
-        
-        .status { padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: center; font-weight: bold; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .loader { display: none; text-align: center; color: var(--secondary); margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <nav>
-    <div style="font-size: 1.4rem; font-weight: 800;">C&M <span style="color:var(--secondary)">INVERSIONES</span></div>
-    <div class="nav-links">
-        <button onclick="showView('pos_view')"><i class="fas fa-cash-register"></i> POS</button>
-        <button onclick="showView('admin_view')"><i class="fas fa-boxes"></i> STOCK</button>
+    <div style="font-weight: 800; font-size: 1.2rem;">C&M INVERSIONES</div>
+    <div class="menu">
+        <button onclick="switchTab('tab-pos')">VENTAS</button>
+        <button onclick="switchTab('tab-inv')">STOCK</button>
     </div>
 </nav>
 
 <div class="container">
-    <div id="pos_view" class="view active">
-        <div class="card">
-            <h2><i class="fas fa-shopping-cart"></i> Punto de Venta (POS)</h2>
-            <input type="text" id="v_cliente" placeholder="Nombre del Cliente / Taller">
-            <input type="text" id="v_codigo" placeholder="Código de Pieza (Ej: DLLA150P...)">
-            <input type="number" id="v_cant" placeholder="Cantidad Vendida">
-            <input type="number" id="v_total" placeholder="Total a Cobrar ($)">
-            <button class="main-btn" onclick="ejecutarVenta()">PROCESAR VENTA Y RECIBO</button>
-            <div id="pos_status" class="status"></div>
-        </div>
+    <div id="tab-pos" class="card active">
+        <h2>Punto de Venta</h2>
+        <input type="text" id="v-cliente" placeholder="Nombre del Cliente">
+        <input type="text" id="v-codigo" placeholder="Código de Repuesto">
+        <input type="number" id="v-cant" placeholder="Cantidad">
+        <input type="number" id="v-total" placeholder="Monto Total $">
+        <button class="btn-main" onclick="registrarVenta()">PROCESAR Y RECIBO</button>
+        <div id="load-pos" class="loader">Procesando en la nube...</div>
     </div>
 
-    <div id="admin_view" class="view">
-        <div class="card">
-            <h2><i class="fas fa-plus-circle"></i> Cargar Inventario</h2>
-            <input type="text" id="p_codigo" placeholder="Código OEM">
-            <input type="text" id="p_desc" placeholder="Descripción (Ej: Tobera Tipo P)">
-            <input type="text" id="p_app" placeholder="Aplicación de Motor (Ej: Hilux 2KD)">
-            <input type="number" id="p_stock" placeholder="Stock Inicial">
-            <input type="number" id="p_precio" placeholder="Precio Sugerido $">
-            <button class="main-btn" onclick="ejecutarCarga()" style="background: var(--primary);">GUARDAR EN LA NUBE</button>
-            <div id="admin_status" class="status"></div>
-        </div>
+    <div id="tab-inv" class="card">
+        <h2>Cargar Nuevo Repuesto</h2>
+        <input type="text" id="i-codigo" placeholder="Código OEM">
+        <input type="text" id="i-desc" placeholder="Descripción">
+        <input type="text" id="i-app" placeholder="Aplicación Motor">
+        <input type="number" id="i-stock" placeholder="Stock Inicial">
+        <input type="number" id="i-precio" placeholder="Precio $">
+        <button class="btn-main" style="background: var(--primary);" onclick="cargarStock()">GUARDAR PRODUCTO</button>
+        <div id="load-inv" class="loader">Sincronizando con Google...</div>
     </div>
 </div>
 
 <script>
-    async function llamarServidor(datos, statusId) {
-    const statusDiv = document.getElementById(statusId);
-    const url = 'https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrSyZJ2nNUXRHizsPrILfZOaGHl8LjHM5-2VENRZOKW4dTH3kFtYT8XWtlakNQiO1Ijdm7e82Vu_lXuH_ElT6efkiG9nwus9Y3yxI77Qenv0LwksDYB0SDyvINzjQ_-X8uawnQdFJCagnif-J5HU3Dm0JK6ZQ0lyCh9bnSzI1Pjiwv2Jrvb2KFkwbKmUxacX17CZNO0KI5UAFlTCDEokmZtpdYHTaBTTDgEIRCIjgVrxYeJrPX9gYbEteyUM91OLjKHe1IB9RO6j3YNIZ3SuGK74IAdKXQI9j9BdVgs3&lib=MJe2m6fQExUD-nNIOKd3mm6XsAxjzrczq';
+    // PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT (LA QUE TERMINA EN /exec)
+    const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrTc1wYIJ45z7EH1S8Vnk8FZk6lqynk2r2_MfbO1ZwTT1kzrdp-V_0FOcTsThPRx4Dgl5lEx68YHUlZv7PI0CKRb-Nyeh_FnypbDcOSy14HYR18Y4iMywAJ3TOqn8i6bPzQgfzRxm17ar0zI20HvwOFH6JHpGtCdwRSb9s7qX-a1FCYwX3dVHtU0AAtF4iedsuisSQ-hJloMeR7e4NMXNX6QRRFmvsfDUrR1iLYLACDVtCWhRdwzztmhrQcm0S95FntONFBKR9bO_aJT-ebKjqZ80dWGDAJ1yQBK1Rwb&lib=MJe2m6fQExUD-nNIOKd3mm6XsAxjzrczq';
 
-    try {
-        // Técnica de envío "Cero Restricciones"
-        await fetch(url, {
-            method: 'POST',
-            mode: 'no-cors', // Crucial para saltar el bloqueo
-            cache: 'no-cache',
-            body: JSON.stringify(datos)
-        });
-        
-        // Con no-cors no podemos leer la respuesta, pero los datos SI entran.
-        alert("✅ Intento de envío realizado. Revisa tu Excel.");
-        return true;
-    } catch (e) {
-        alert("❌ Error de red: " + e.message);
-        return false;
+    function switchTab(id) {
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
     }
-}
 
-    async function ejecutarVenta() {
-        const datos = {
-            action: 'registrarVenta',
-            cliente: document.getElementById('v_cliente').value,
-            codigo: document.getElementById('v_codigo').value,
-            cantidad: document.getElementById('v_cant').value,
-            total: document.getElementById('v_total').value
-        };
+    async function conectar(datos, loaderId) {
+        const loader = document.getElementById(loaderId);
+        loader.style.display = "block";
 
-        if(!datos.codigo || !datos.cliente) return alert("Complete los datos");
-        
-        const ok = await llamarServidor(datos, 'pos_status');
-        if(ok) {
-            generarPDF(datos);
-            document.getElementById('v_codigo').value = "";
-            document.getElementById('v_cant').value = "";
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Salta restricciones de seguridad
+                body: JSON.stringify(datos)
+            });
+            
+            loader.innerText = "✅ ¡LISTO! Revisa tu Excel.";
+            setTimeout(() => { loader.style.display = "none"; loader.innerText = "Procesando..."; }, 3000);
+            return true;
+        } catch (e) {
+            alert("Error de conexión");
+            loader.style.display = "none";
+            return false;
         }
     }
 
-    async function ejecutarCarga() {
-        const datos = {
-            action: 'agregarProducto',
-            codigo: document.getElementById('p_codigo').value,
-            desc: document.getElementById('p_desc').value,
-            aplicacion: document.getElementById('p_app').value,
-            stock: document.getElementById('p_stock').value,
-            precio: document.getElementById('p_precio').value,
-            categoria: 'Diesel'
+    async function cargarStock() {
+        const payload = {
+            action: 'agregar',
+            codigo: document.getElementById('i-codigo').value,
+            categoria: 'Diesel',
+            desc: document.getElementById('i-desc').value,
+            aplicacion: document.getElementById('i-app').value,
+            stock: document.getElementById('i-stock').value,
+            precio: document.getElementById('i-precio').value
         };
+        if(!payload.codigo) return alert("Falta el código");
+        const ok = await conectar(payload, 'load-inv');
+        if(ok) document.getElementById('i-codigo').value = "";
+    }
 
-        if(!datos.codigo) return alert("El código es obligatorio");
+    async function registrarVenta() {
+        const payload = {
+            action: 'venta',
+            cliente: document.getElementById('v-cliente').value,
+            codigo: document.getElementById('v-codigo').value,
+            cant: document.getElementById('v-cant').value,
+            total: document.getElementById('v-total').value
+        };
+        if(!payload.codigo || !payload.cliente) return alert("Faltan datos");
         
-        const ok = await llamarServidor(datos, 'admin_status');
+        const ok = await conectar(payload, 'load-pos');
         if(ok) {
-            document.getElementById('p_codigo').value = "";
-            document.getElementById('p_stock').value = "";
+            generarPDF(payload);
+            document.getElementById('v-codigo').value = "";
         }
     }
 
@@ -134,13 +120,9 @@
         doc.setFontSize(20);
         doc.text("Inversiones C&M C.A.", 20, 20);
         doc.setFontSize(10);
-        doc.text("RIF: J-50478231-0 | Ciudad Bolívar", 20, 28);
-        doc.line(20, 35, 190, 35);
-        doc.text(`CLIENTE: ${d.cliente}`, 20, 45);
-        doc.text(`PIEZA: ${d.codigo}`, 20, 55);
-        doc.text(`CANTIDAD: ${d.cantidad}`, 20, 65);
-        doc.setFontSize(14);
-        doc.text(`TOTAL PAGADO: $${d.total}`, 20, 80);
+        doc.text(`Recibo para: ${d.cliente}`, 20, 40);
+        doc.text(`Código: ${d.codigo}`, 20, 50);
+        doc.text(`Total: $${d.total}`, 20, 60);
         doc.save(`Recibo_CM_${d.cliente}.pdf`);
     }
 </script>
