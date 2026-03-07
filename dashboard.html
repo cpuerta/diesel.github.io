@@ -76,23 +76,49 @@
     }
 
     async function cargarInventario() {
-        const payload = {
-            action: 'agregarProducto',
-            codigo: document.getElementById('p_codigo').value,
-            categoria: 'Repuesto',
-            desc: document.getElementById('p_desc').value,
-            aplicacion: document.getElementById('p_app').value,
-            stock: parseInt(document.getElementById('p_stock').value),
-            precio: document.getElementById('p_precio').value
-        };
+    const p_codigo = document.getElementById('p_codigo').value;
+    const p_desc = document.getElementById('p_desc').value;
+    const p_app = document.getElementById('p_app').value;
+    const p_stock = document.getElementById('p_stock').value;
+    const p_precio = document.getElementById('p_precio').value;
 
-        const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-        if(res) alert("Producto cargado con éxito");
+    if (!p_codigo || !p_stock) {
+        alert("El código y el stock son obligatorios");
+        return;
     }
 
+    const payload = {
+        action: 'agregarProducto',
+        codigo: p_codigo,
+        categoria: 'Repuesto',
+        desc: p_desc,
+        aplicacion: p_app,
+        stock: parseInt(p_stock),
+        precio: p_precio
+    };
+
+    // Usamos una técnica de envío más simple que Google acepta mejor
+    try {
+        const formBody = JSON.stringify(payload);
+        
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Evita el bloqueo del navegador
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: formBody
+        });
+
+        alert("🛒 Petición de carga enviada. Verifique su Google Sheet en unos segundos.");
+        // Limpiar formulario
+        document.getElementById('p_codigo').value = "";
+        document.getElementById('p_desc').value = "";
+    } catch (error) {
+        console.error("Error técnico:", error);
+        alert("Error al conectar con el servidor.");
+    }
+}
     function generarRecibo(d) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
