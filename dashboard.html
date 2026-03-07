@@ -48,78 +48,52 @@
 </div>
 
 <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHgvjxVJBLR69zv5idP-FPWvYKgXfC1XtlYumwymrnol1bE6Pn7xh65XOsCi6ufQ-6Tw/exec'; // <--- OBLIGATORIO
+   <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHgvjxVJBLR69zv5idP-FPWvYKgXfC1XtlYumwymrnol1bE6Pn7xh65XOsCi6ufQ-6Tw/exec'; // <--- REVISA QUE SEA LA NUEVA
 
-    function showView(id) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
+    function enviarDatos(datos) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", WEB_APP_URL, true);
+        xhr.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                alert("✅ Operación Exitosa en Google Sheets");
+                // Limpiar campos si es necesario
+            }
+        };
+
+        xhr.send(JSON.stringify(datos));
     }
 
-    async function procesarVenta() {
+    function cargarInventario() {
+        const payload = {
+            action: 'agregarProducto',
+            codigo: document.getElementById('p_codigo').value,
+            categoria: 'Repuesto',
+            desc: document.getElementById('p_desc').value,
+            aplicacion: document.getElementById('p_app').value,
+            stock: document.getElementById('p_stock').value,
+            precio: document.getElementById('p_precio').value
+        };
+        
+        if(!payload.codigo) return alert("Escribe un código");
+        enviarDatos(payload);
+    }
+
+    function procesarVenta() {
         const payload = {
             action: 'registrarVenta',
             cliente: document.getElementById('v_cliente').value,
             codigo: document.getElementById('v_codigo').value,
-            cantidad: parseInt(document.getElementById('v_cant').value),
+            cantidad: document.getElementById('v_cant').value,
             total: document.getElementById('v_total').value
         };
-
-        const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-
-        if(res) {
-            alert("Venta guardada en Sheets");
-            generarRecibo(payload);
-        }
-    }
-
-    async function cargarInventario() {
-    const p_codigo = document.getElementById('p_codigo').value;
-    const p_desc = document.getElementById('p_desc').value;
-    const p_app = document.getElementById('p_app').value;
-    const p_stock = document.getElementById('p_stock').value;
-    const p_precio = document.getElementById('p_precio').value;
-
-    if (!p_codigo || !p_stock) {
-        alert("El código y el stock son obligatorios");
-        return;
-    }
-
-    const payload = {
-        action: 'agregarProducto',
-        codigo: p_codigo,
-        categoria: 'Repuesto',
-        desc: p_desc,
-        aplicacion: p_app,
-        stock: parseInt(p_stock),
-        precio: p_precio
-    };
-
-    // Usamos una técnica de envío más simple que Google acepta mejor
-    try {
-        const formBody = JSON.stringify(payload);
         
-        fetch(WEB_APP_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Evita el bloqueo del navegador
-            headers: {
-                'Content-Type': 'text/plain'
-            },
-            body: formBody
-        });
-
-        alert("🛒 Petición de carga enviada. Verifique su Google Sheet en unos segundos.");
-        // Limpiar formulario
-        document.getElementById('p_codigo').value = "";
-        document.getElementById('p_desc').value = "";
-    } catch (error) {
-        console.error("Error técnico:", error);
-        alert("Error al conectar con el servidor.");
-    }
-}
-    function generarRecibo(d) {
+        if(!payload.codigo) return alert("Escribe un código");
+        enviarDatos(payload);
+        
+        function generarRecibo(d) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         doc.text("RECIBO INVERSIONES C&M", 20, 20);
@@ -128,6 +102,9 @@
         doc.text(`Total: $${d.total}`, 20, 60);
         doc.save(`Recibo_${d.cliente}.pdf`);
     }
+
+    
+    
 </script>
 
 </body>
