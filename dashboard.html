@@ -67,40 +67,27 @@
 </div>
 
 <script>
-    // PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxqmGNjJFao0W9uhjCi6bbBWfVGh_DbeBK6rrb2YkKsONMf59hYyGbuya122mYKKMneZQ/exec'; 
-
-    function showView(id) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
-
     async function llamarServidor(datos, statusId) {
-        const statusDiv = document.getElementById(statusId);
-        statusDiv.style.display = "block";
-        statusDiv.style.background = "#e2e8f0";
-        statusDiv.innerText = "Conectando con Google Sheets...";
+    const statusDiv = document.getElementById(statusId);
+    const url = 'https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrSyZJ2nNUXRHizsPrILfZOaGHl8LjHM5-2VENRZOKW4dTH3kFtYT8XWtlakNQiO1Ijdm7e82Vu_lXuH_ElT6efkiG9nwus9Y3yxI77Qenv0LwksDYB0SDyvINzjQ_-X8uawnQdFJCagnif-J5HU3Dm0JK6ZQ0lyCh9bnSzI1Pjiwv2Jrvb2KFkwbKmUxacX17CZNO0KI5UAFlTCDEokmZtpdYHTaBTTDgEIRCIjgVrxYeJrPX9gYbEteyUM91OLjKHe1IB9RO6j3YNIZ3SuGK74IAdKXQI9j9BdVgs3&lib=MJe2m6fQExUD-nNIOKd3mm6XsAxjzrczq'; // <--- PEGA LA URL NUEVA AQUÍ
 
-        try {
-            await fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                cache: 'no-cache',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(datos)
-            });
-            
-            statusDiv.style.background = "#dcfce7";
-            statusDiv.style.color = "#166534";
-            statusDiv.innerText = "✅ Operación Exitosa";
-            setTimeout(() => statusDiv.style.display = "none", 3000);
-            return true;
-        } catch (e) {
-            statusDiv.style.background = "#fee2e2";
-            statusDiv.innerText = "❌ Error de conexión";
-            return false;
-        }
+    try {
+        // Técnica de envío "Cero Restricciones"
+        await fetch(url, {
+            method: 'POST',
+            mode: 'no-cors', // Crucial para saltar el bloqueo
+            cache: 'no-cache',
+            body: JSON.stringify(datos)
+        });
+        
+        // Con no-cors no podemos leer la respuesta, pero los datos SI entran.
+        alert("✅ Intento de envío realizado. Revisa tu Excel.");
+        return true;
+    } catch (e) {
+        alert("❌ Error de red: " + e.message);
+        return false;
     }
+}
 
     async function ejecutarVenta() {
         const datos = {
