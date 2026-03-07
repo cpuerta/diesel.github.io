@@ -54,34 +54,38 @@
 
 <script>
     // PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT (LA QUE TERMINA EN /exec)
-    const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrTc1wYIJ45z7EH1S8Vnk8FZk6lqynk2r2_MfbO1ZwTT1kzrdp-V_0FOcTsThPRx4Dgl5lEx68YHUlZv7PI0CKRb-Nyeh_FnypbDcOSy14HYR18Y4iMywAJ3TOqn8i6bPzQgfzRxm17ar0zI20HvwOFH6JHpGtCdwRSb9s7qX-a1FCYwX3dVHtU0AAtF4iedsuisSQ-hJloMeR7e4NMXNX6QRRFmvsfDUrR1iLYLACDVtCWhRdwzztmhrQcm0S95FntONFBKR9bO_aJT-ebKjqZ80dWGDAJ1yQBK1Rwb&lib=MJe2m6fQExUD-nNIOKd3mm6XsAxjzrczq';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxqmGNjJFao0W9uhjCi6bbBWfVGh_DbeBK6rrb2YkKsONMf59hYyGbuya122mYKKMneZQ/exec
+';
 
     function switchTab(id) {
         document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
 
-    async function conectar(datos, loaderId) {
-        const loader = document.getElementById(loaderId);
-        loader.style.display = "block";
+   async function conectar(datos, loaderId) {
+    const loader = document.getElementById(loaderId);
+    loader.style.display = "block";
 
-        try {
-            await fetch(API_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Salta restricciones de seguridad
-                body: JSON.stringify(datos)
-            });
-            
-            loader.innerText = "✅ ¡LISTO! Revisa tu Excel.";
-            setTimeout(() => { loader.style.display = "none"; loader.innerText = "Procesando..."; }, 3000);
-            return true;
-        } catch (e) {
-            alert("Error de conexión");
-            loader.style.display = "none";
-            return false;
-        }
+    try {
+        // Usamos una técnica de envío crudo para evitar bloqueos
+        await fetch(API_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: {
+                'Content-Type': 'text/plain' // Fundamental para Apps Script
+            },
+            body: JSON.stringify(datos)
+        });
+        
+        loader.innerText = "✅ ¡Enviado! Verifica tu Excel.";
+        setTimeout(() => { loader.style.display = "none"; }, 4000);
+        return true;
+    } catch (e) {
+        alert("Error físico de conexión: " + e.message);
+        loader.style.display = "none";
+        return false;
     }
-
+}
     async function cargarStock() {
         const payload = {
             action: 'agregar',
