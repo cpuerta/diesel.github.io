@@ -217,6 +217,11 @@
             btn.disabled = false;
         }
     }
+       // Lógica de búsqueda avanzada
+const resultado = inventario.find(item => 
+    item.codigo.includes(input) || 
+    item.aplicacion.toUpperCase().includes(input)
+);
 </script>
 
 </body>
