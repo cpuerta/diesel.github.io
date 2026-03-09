@@ -81,32 +81,35 @@
     resultsArea.classList.remove('opacity-0');
 }
         function displayResult(item) {
-            resultsArea.innerHTML = '';
-            if (item) {
-                resultsArea.innerHTML = `
-                    <div class="bg-white p-8 rounded-2xl shadow-lg border border-blue-50">
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <p class="text-xs font-bold text-blue-500 uppercase tracking-widest">Motor</p>
-                                <p class="text-2xl font-semibold text-gray-800">${item.motor}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold text-blue-500 uppercase tracking-widest">Aplicación</p>
-                                <p class="text-lg text-gray-600">${item.aplicacion}</p>
-                            </div>
-                            <div class="col-span-2 border-t pt-4">
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Detalles de Parte</p>
-                                <p class="text-xl font-mono text-gray-800 mt-1">${item.nro}</p>
-                                <p class="text-sm text-gray-500 mt-1">Ref: ${item.ref}</p>
-                            </div>
-                        </div>
+    resultsArea.innerHTML = '';
+    if (item && !item.error) {
+        resultsArea.innerHTML = `
+            <div class="bg-white p-8 rounded-2xl shadow-lg border border-blue-50">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-xs font-bold text-blue-500 uppercase tracking-widest">Motor / Marca</p>
+                        <p class="text-2xl font-semibold text-gray-800">${item.motor}</p>
                     </div>
-                `;
-            } else {
-                resultsArea.innerHTML = `<p class="text-center text-gray-400">No se encontraron coincidencias.</p>`;
-            }
-            resultsArea.classList.remove('opacity-0');
-        }
+                    <div>
+                        <p class="text-xs font-bold text-blue-500 uppercase tracking-widest">Aplicación</p>
+                        <p class="text-lg text-gray-600">${item.aplicacion}</p>
+                    </div>
+                    <div class="col-span-1 md:col-span-2 border-t pt-4">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Número de Parte Localizado</p>
+                        <p class="text-xl font-mono text-blue-700 mt-1">${item.nro_parte}</p>
+                        <p class="text-sm text-gray-500 mt-1 italic">Referencias cruzadas: ${item.referencias}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        resultsArea.innerHTML = `
+            <div class="text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <p class="text-gray-400">No se encontraron coincidencias para este número.</p>
+            </div>`;
+    }
+    resultsArea.classList.remove('opacity-0');
+}
     </script>
 </body>
 </html>
