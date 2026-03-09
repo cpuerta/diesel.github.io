@@ -3,115 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Parts Search</title>
+    <title>Buscador de Repuestos Diesel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f9fafb; }
-        .search-focus:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; 
+        }
+
+        .search-input:focus { 
+            outline: none; 
+            border-color: #3b82f6; 
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05); 
+        }
+
+        /* Animación suave para la aparición de resultados */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-2xl px-6">
-        <div class="relative">
+    <div class="w-full max-w-2xl">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-gray-800 tracking-tight">Diesel Parts</h1>
+            <p class="text-gray-400 mt-2 text-sm uppercase tracking-widest font-semibold">Consulta de Inventario</p>
+        </div>
+
+        <div class="relative group">
             <input 
                 type="text" 
                 id="partSearch" 
-                placeholder="Introduce número de parte..." 
-                class="w-full p-5 text-xl rounded-2xl border border-gray-200 shadow-sm search-focus transition-all duration-300 text-gray-700"
+                placeholder="Introduce número de parte y pulsa Enter..." 
+                class="search-input w-full p-6 text-xl rounded-3xl border border-gray-200 shadow-sm transition-all duration-300 text-gray-700 bg-white"
                 autocomplete="off"
                 autofocus
             >
-            <div id="loader" class="hidden absolute right-5 top-5">
-                <svg class="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24">
+            
+            <div id="loader" class="hidden absolute right-6 top-6">
+                <svg class="animate-spin h-7 w-7 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </div>
         </div>
 
-        <div id="resultsArea" class="mt-8 space-y-4 opacity-0 transition-opacity duration-500">
+        <div id="resultsArea" class="mt-10 opacity-0 transition-all duration-500">
             </div>
+        
+        <div class="mt-20 text-center">
+            <p class="text-gray-300 text-xs">Sistema de búsqueda rápida v1.0</p>
+        </div>
     </div>
-<?php
-require buscar.php
-    ?>
-    <script>
-        // Simulación de base de datos basada en tus datos
-        const db = [
-            { motor: "ISUZU", aplicacion: "4BD1/6BD1 C/T", nro: "DLLA154S334N419", ref: "105015-4190" },
-            { motor: "ISUZU", aplicacion: "4JB1 C/T", nro: "DLLA145PN238", ref: "9432612582" },
-            { motor: "ISUZU", aplicacion: "6HH1", nro: "DLLA156SM058", ref: "105025-0580 9432610644" },
-            { motor: "CUMMINS", aplicacion: "4BT/6BT", nro: "DSLA145P265", ref: "0433175033" },
-            { motor: "IVECO", aplicacion: "5912/6012", nro: "DSLA134P604", ref: "0433175114" },
-            { motor: "MERCEDES", aplicacion: "710/711/1720/364/366", nro: "DLLA134P422", ref: "0433171303" }
-        ];
 
+    <script>
         const input = document.getElementById('partSearch');
         const resultsArea = document.getElementById('resultsArea');
         const loader = document.getElementById('loader');
 
+        // Escuchar la tecla Enter
         input.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
-                const query = input.value.trim().toUpperCase();
-                searchPart(query);
+                const query = input.value.trim();
+                if (query.length > 0) {
+                    performSearch(query);
+                }
             }
         });
 
-        async function searchPart(query) {
-    if (!query) return;
+        async function performSearch(query) {
+            // Estado inicial: mostrar carga
+            loader.classList.remove('hidden');
+            resultsArea.classList.add('opacity-0');
 
-    loader.classList.remove('hidden');
-    resultsArea.classList.add('opacity-0');
+            try {
+                // Conecta con tu script PHP que ya configuramos
+                const response = await fetch(`buscar.php?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
 
-    try {
-        // Cambia 'buscar.php' por la URL donde subas el archivo PHP
-        const response = await fetch(`buscar.php?q=${query}`);
-        const data = await response.json();
-
-        loader.classList.add('hidden');
-        
-        if (data.error) {
-            resultsArea.innerHTML = `<p class="text-center text-gray-400">${data.error}</p>`;
-        } else {
-            displayResult(data);
+                loader.classList.add('hidden');
+                renderResult(data);
+            } catch (error) {
+                loader.classList.add('hidden');
+                console.error("Error en la búsqueda:", error);
+                showErrorMessage("Error al conectar con la base de datos.");
+            }
         }
-    } catch (error) {
-        loader.classList.add('hidden');
-        resultsArea.innerHTML = `<p class="text-center text-red-400">Error de conexión al servidor.</p>`;
-    }
-    resultsArea.classList.remove('opacity-0');
-}
-        function displayResult(item) {
-    resultsArea.innerHTML = '';
-    if (item && !item.error) {
-        resultsArea.innerHTML = `
-            <div class="bg-white p-8 rounded-2xl shadow-lg border border-blue-50">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-xs font-bold text-blue-500 uppercase tracking-widest">Motor / Marca</p>
-                        <p class="text-2xl font-semibold text-gray-800">${item.motor}</p>
+
+        function renderResult(item) {
+            resultsArea.innerHTML = '';
+            
+            // Si no hay resultados o hay error
+            if (!item || item.error) {
+                resultsArea.innerHTML = `
+                    <div class="text-center p-10 bg-white rounded-3xl border border-dashed border-gray-200">
+                        <p class="text-gray-400 text-lg italic">No se encontró información para este número.</p>
+                    </div>`;
+            } else {
+                // Renderizado de tarjeta de repuesto con diseño jerárquico
+                resultsArea.innerHTML = `
+                    <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-blue-900/5 border border-blue-50 fade-in">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mb-2">Marca / Motor</h3>
+                                <p class="text-3xl font-semibold text-gray-800">${item.motor}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mb-2">Aplicación</h3>
+                                <p class="text-xl text-gray-600 font-medium">${item.aplicacion}</p>
+                            </div>
+                            <div class="col-span-1 md:col-span-2 pt-6 border-t border-gray-100">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Detalles de Referencia</h3>
+                                <div class="flex flex-col gap-1">
+                                    <p class="text-2xl font-mono text-blue-700 break-all">${item.nro_parte}</p>
+                                    <p class="text-sm text-gray-400 font-medium">Ref: ${item.referencias}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-xs font-bold text-blue-500 uppercase tracking-widest">Aplicación</p>
-                        <p class="text-lg text-gray-600">${item.aplicacion}</p>
-                    </div>
-                    <div class="col-span-1 md:col-span-2 border-t pt-4">
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Número de Parte Localizado</p>
-                        <p class="text-xl font-mono text-blue-700 mt-1">${item.nro_parte}</p>
-                        <p class="text-sm text-gray-500 mt-1 italic">Referencias cruzadas: ${item.referencias}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        resultsArea.innerHTML = `
-            <div class="text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <p class="text-gray-400">No se encontraron coincidencias para este número.</p>
-            </div>`;
-    }
-    resultsArea.classList.remove('opacity-0');
-}
+                `;
+            }
+            resultsArea.classList.remove('opacity-0');
+        }
+
+        function showErrorMessage(msg) {
+            resultsArea.innerHTML = `<p class="text-center text-red-400 text-sm font-medium">${msg}</p>`;
+            resultsArea.classList.remove('opacity-0');
+        }
     </script>
 </body>
 </html>
