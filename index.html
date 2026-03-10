@@ -3,35 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Search | Supabase</title>
+    <title>Diesel Search | Catálogo de Repuestos</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="supabase.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body class="bg-slate-50 flex flex-col items-center justify-center min-h-screen p-6">
 
-    <div class="w-full max-w-xl text-center">
-        <h1 class="text-2xl font-bold text-slate-800 mb-8">Diesel Parts Cloud</h1>
+    <div class="w-full max-w-xl">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Diesel Parts</h1>
+            <p class="text-slate-400 text-xs uppercase tracking-[0.3em] mt-2 font-bold">Consulta de Inventario</p>
+        </div>
 
         <div class="relative">
             <input 
                 type="text" id="partSearch" 
-                placeholder="Número de parte + Enter..." 
-                class="w-full p-5 rounded-2xl border-none shadow-lg focus:ring-2 focus:ring-blue-500 text-lg outline-none"
+                placeholder="Introduce Nro de Parte + Enter..." 
+                class="w-full p-6 rounded-3xl border-2 border-transparent shadow-2xl focus:border-blue-500 focus:ring-0 text-xl outline-none transition-all bg-white"
                 autofocus
+                autocomplete="off"
             >
-            <div id="loader" class="hidden absolute right-5 top-5">
-                <div class="animate-spin h-6 w-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+            <div id="loader" class="hidden absolute right-6 top-6">
+                <div class="animate-spin h-7 w-7 border-4 border-blue-500 border-t-transparent rounded-full"></div>
             </div>
         </div>
 
-        <div id="resultsArea" class="mt-10 text-left"></div>
+        <div id="resultsArea" class="mt-10"></div>
     </div>
 
     <script>
-        // 1. CONFIGURACIÓN (Reemplaza con tus datos de Supabase)
-        const SUPABASE_URL = 'https://pcsybwizwbmsihloqgwe.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjc3lid2l6d2Jtc2lobG9xZ3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODU5MjIsImV4cCI6MjA4ODY2MTkyMn0.Zduiwhmff4uSQecRjRZv714QrC0hF0mDqoW6ORqMvYc';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // --- 1. CONFIGURACIÓN DE SUPABASE ---
+        const SUPABASE_URL = 'https://pcsybwizwbmsihloqgwe.supabase.co'; // Reemplaza esto
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjc3lid2l6d2Jtc2lobG9xZ3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODU5MjIsImV4cCI6MjA4ODY2MTkyMn0.Zduiwhmff4uSQecRjRZv714QrC0hF0mDqoW6ORqMvYc';    // Reemplaza esto
+        const WHATSAPP_PHONE = '584142677071'; // Tu número real (con código de país)
+
+        // Inicialización con bypass de Tracking Prevention
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false }
+        });
 
         const input = document.getElementById('partSearch');
         const resultsArea = document.getElementById('resultsArea');
@@ -45,9 +60,8 @@
                 loader.classList.remove('hidden');
                 resultsArea.innerHTML = '';
 
-                // 2. BÚSQUEDA EN SUPABASE
-                // Buscamos coincidencia parcial en nro_parte o referencias
-                const { data, error } = await supabase
+                // Búsqueda ilike (no distingue mayúsculas/minúsculas)
+                const { data, error } = await supabaseClient
                     .from('repuestos')
                     .select('*')
                     .or(`nro_parte.ilike.%${query}%,referencias.ilike.%${query}%`)
@@ -56,8 +70,13 @@
 
                 loader.classList.add('hidden');
 
-                if (error) {
-                    resultsArea.innerHTML = '<p class="text-center text-slate-400">No se encontraron resultados.</p>';
+                if (error || !data) {
+                    resultsArea.innerHTML = `
+                        <div class="text-center p-8 bg-white rounded-3xl border border-dashed border-slate-200 fade-in">
+                            <p class="text-slate-400 mb-4">No encontramos la referencia "${query}".</p>
+                            <a href="https://wa.me/${WHATSAPP_PHONE}?text=Hola, busco el repuesto: ${query}. ¿Me pueden ayudar?" 
+                               class="text-blue-600 font-bold hover:underline">Consultar con un asesor →</a>
+                        </div>`;
                 } else {
                     renderResult(data);
                 }
@@ -65,22 +84,38 @@
         });
 
         function renderResult(item) {
+            // Mensaje de WhatsApp estructurado
+            const message = encodeURIComponent(`Hola, encontré este repuesto en su buscador:
+- Motor: ${item.motor}
+- Nro Parte: ${item.nro_parte}
+- Aplicación: ${item.aplicacion}
+
+¿Tienen disponibilidad y realizan envíos?`);
+
             resultsArea.innerHTML = `
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 animate-fade-in">
-                    <div class="grid gap-4">
-                        <div class="border-b pb-2">
-                            <span class="text-[10px] font-bold text-blue-500 uppercase">Motor</span>
-                            <p class="text-xl font-semibold text-slate-800">${item.motor}</p>
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white fade-in">
+                    <div class="grid gap-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Motor / Marca</span>
+                                <p class="text-2xl font-bold text-slate-800">${item.motor}</p>
+                                <p class="text-slate-500 font-medium">${item.aplicacion}</p>
+                            </div>
+                            <span class="bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase">En Catálogo</span>
                         </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-blue-500 uppercase">Aplicación</span>
-                            <p class="text-slate-600">${item.aplicacion}</p>
+                        
+                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Identificación Técnica</span>
+                            <p class="text-2xl font-mono text-blue-800 font-bold break-all">${item.nro_parte}</p>
+                            <p class="text-xs text-slate-400 mt-1 italic">Ref: ${item.referencias}</p>
                         </div>
-                        <div class="bg-slate-50 p-4 rounded-xl">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase">Identificación</span>
-                            <p class="text-lg font-mono text-blue-700">${item.nro_parte}</p>
-                            <p class="text-xs text-slate-400 mt-1">${item.referencias}</p>
-                        </div>
+
+                        <a href="https://wa.me/${WHATSAPP_PHONE}?text=${message}" 
+                           target="_blank"
+                           class="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-center py-5 rounded-2xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3">
+                            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.888 11.888-11.888 3.176 0 6.161 1.237 8.404 3.48s3.481 5.229 3.481 8.404c0 6.556-5.332 11.888-11.888 11.888-2.016 0-3.991-.512-5.742-1.487l-6.242 1.638zm5.918-3.513c1.448.859 3.15 1.314 4.887 1.314 5.244 0 9.512-4.268 9.512-9.512 0-2.541-.989-4.93-2.785-6.726s-4.185-2.785-6.726-2.785c-5.245 0-9.512 4.268-9.512 9.512 0 1.9.555 3.754 1.605 5.36l-1.054 3.849 3.953-1.036z"/></svg>
+                            Consultar Precio y Envío
+                        </a>
                     </div>
                 </div>`;
         }
