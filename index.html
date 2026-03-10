@@ -3,122 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diesel Search | Catálogo</title>
+    <title>Diesel Search | Catálogo Profesional</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script src="supabase.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-slate-50 flex flex-col items-center justify-center min-h-screen p-6">
 
     <div class="w-full max-w-xl">
         <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Diesel Parts</h1>
-            <p class="text-slate-400 text-xs uppercase tracking-[0.3em] mt-2 font-bold">Consulta de Inventario</p>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Diesel Parts</h1>
+            <p class="text-blue-500 text-xs uppercase tracking-[0.4em] mt-2 font-black">Inventario Digital</p>
         </div>
 
-        <div class="relative">
+        <div class="relative group">
             <input 
                 type="text" id="partSearch" 
-                placeholder="Introduce Nro de Parte + Enter..." 
-                class="w-full p-6 rounded-3xl border-2 border-transparent shadow-2xl focus:border-blue-500 focus:ring-0 text-xl outline-none transition-all bg-white"
-                autofocus
-                autocomplete="off"
+                placeholder="Nro de Parte + Enter..." 
+                class="w-full p-6 rounded-[2rem] border-none shadow-2xl focus:ring-4 focus:ring-blue-100 text-xl outline-none transition-all bg-white text-slate-700"
+                autofocus autocomplete="off"
             >
-            <div id="loader" class="hidden absolute right-6 top-6">
-                <div class="animate-spin h-7 w-7 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-            </div>
         </div>
 
-        <div id="resultsArea" class="mt-10"></div>
+        <div id="resultsArea" class="mt-8"></div>
+        
+        <p class="mt-12 text-center text-slate-400 text-[10px] uppercase tracking-widest">© 2026 Sistema de Consulta Rápida</p>
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN DE SUPABASE ---
-        const SUPABASE_URL = 'https://pcsybwizwbmsihloqgwe.supabase.co'; // Reemplaza esto
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjc3lid2l6d2Jtc2lobG9xZ3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODU5MjIsImV4cCI6MjA4ODY2MTkyMn0.Zduiwhmff4uSQecRjRZv714QrC0hF0mDqoW6ORqMvYc';    // Reemplaza esto
-        const WHATSAPP_PHONE = '584142677071'; // Tu número real (con código de país)
-
-        // Inicialización con bypass de Tracking Prevention
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-            auth: { persistSession: false }
-        });
+        // CONFIGURA TU WHATSAPP AQUÍ
+        const WHATSAPP_PHONE = '584142677071'; 
 
         const input = document.getElementById('partSearch');
         const resultsArea = document.getElementById('resultsArea');
-        const loader = document.getElementById('loader');
 
         input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
-                const query = input.value.trim();
+                const query = input.value.trim().toUpperCase();
                 if (!query) return;
 
-                loader.classList.remove('hidden');
-                resultsArea.innerHTML = '';
+                try {
+                    // Cargamos los datos del archivo local
+                    const response = await fetch('db.json');
+                    const data = await response.json();
 
-                // Búsqueda ilike (no distingue mayúsculas/minúsculas)
-                const { data, error } = await supabaseClient
-                    .from('repuestos')
-                    .select('*')
-                    .or(`nro_parte.ilike.%${query}%,referencias.ilike.%${query}%`)
-                    .limit(1)
-                    .single();
+                    // Buscamos coincidencia en nro_parte (p) o referencias (r)
+                    const item = data.find(i => 
+                        i.p.toUpperCase().includes(query) || 
+                        i.r.toUpperCase().includes(query)
+                    );
 
-                loader.classList.add('hidden');
-
-                if (error || !data) {
-                    resultsArea.innerHTML = `
-                        <div class="text-center p-8 bg-white rounded-3xl border border-dashed border-slate-200 fade-in">
-                            <p class="text-slate-400 mb-4">No encontramos la referencia "${query}".</p>
-                            <a href="https://wa.me/${WHATSAPP_PHONE}?text=Hola, busco el repuesto: ${query}. ¿Me pueden ayudar?" 
-                               class="text-blue-600 font-bold hover:underline">Consultar con un asesor →</a>
-                        </div>`;
-                } else {
-                    renderResult(data);
+                    renderResult(item, query);
+                } catch (error) {
+                    console.error("Error cargando db.json:", error);
+                    resultsArea.innerHTML = '<p class="text-red-400 text-center text-sm">Error al cargar la base de datos.</p>';
                 }
             }
         });
 
-        function renderResult(item) {
-            // Mensaje de WhatsApp estructurado
-            const message = encodeURIComponent(`Hola, encontré este repuesto en su buscador:
-- Motor: ${item.motor}
-- Nro Parte: ${item.nro_parte}
-- Aplicación: ${item.aplicacion}
+        function renderResult(item, query) {
+            resultsArea.innerHTML = '';
+            
+            if (item) {
+                const msg = encodeURIComponent(`Hola, encontré este repuesto en el buscador:\nMotor: ${item.m}\nNro Parte: ${item.p}\nAplicación: ${item.a}`);
 
-¿Tienen disponibilidad y realizan envíos?`);
-
-            resultsArea.innerHTML = `
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-white fade-in">
-                    <div class="grid gap-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Motor / Marca</span>
-                                <p class="text-2xl font-bold text-slate-800">${item.motor}</p>
-                                <p class="text-slate-500 font-medium">${item.aplicacion}</p>
+                resultsArea.innerHTML = `
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-white fade-in">
+                        <div class="flex flex-col gap-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Motor</span>
+                                    <p class="text-2xl font-bold text-slate-800">${item.m}</p>
+                                    <p class="text-slate-500 text-sm mt-1">${item.a}</p>
+                                </div>
+                                <span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase italic">Disponible</span>
                             </div>
-                            <span class="bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase">En Catálogo</span>
-                        </div>
-                        
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase">Identificación Técnica</span>
-                            <p class="text-2xl font-mono text-blue-800 font-bold break-all">${item.nro_parte}</p>
-                            <p class="text-xs text-slate-400 mt-1 italic">Ref: ${item.referencias}</p>
-                        </div>
 
-                        <a href="https://wa.me/${WHATSAPP_PHONE}?text=${message}" 
-                           target="_blank"
-                           class="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-center py-5 rounded-2xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3">
-                            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.888 11.888-11.888 3.176 0 6.161 1.237 8.404 3.48s3.481 5.229 3.481 8.404c0 6.556-5.332 11.888-11.888 11.888-2.016 0-3.991-.512-5.742-1.487l-6.242 1.638zm5.918-3.513c1.448.859 3.15 1.314 4.887 1.314 5.244 0 9.512-4.268 9.512-9.512 0-2.541-.989-4.93-2.785-6.726s-4.185-2.785-6.726-2.785c-5.245 0-9.512 4.268-9.512 9.512 0 1.9.555 3.754 1.605 5.36l-1.054 3.849 3.953-1.036z"/></svg>
-                            Consultar Precio y Envío
-                        </a>
-                    </div>
-                </div>`;
+                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Identificación</span>
+                                <p class="text-2xl font-mono text-blue-800 font-bold break-all">${item.p}</p>
+                                <p class="text-[10px] text-slate-400 mt-1 uppercase font-semibold">Ref: ${item.r}</p>
+                            </div>
+
+                            <a href="https://wa.me/${WHATSAPP_PHONE}?text=${msg}" target="_blank"
+                               class="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-center py-5 rounded-2xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3">
+                                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.888 11.888-11.888 3.176 0 6.161 1.237 8.404 3.48s3.481 5.229 3.481 8.404c0 6.556-5.332 11.888-11.888 11.888-2.016 0-3.991-.512-5.742-1.487l-6.242 1.638zm5.918-3.513c1.448.859 3.15 1.314 4.887 1.314 5.244 0 9.512-4.268 9.512-9.512 0-2.541-.989-4.93-2.785-6.726s-4.185-2.785-6.726-2.785c-5.245 0-9.512 4.268-9.512 9.512 0 1.9.555 3.754 1.605 5.36l-1.054 3.849 3.953-1.036z"/></svg>
+                                Consultar Disponibilidad
+                            </a>
+                        </div>
+                    </div>`;
+            } else {
+                resultsArea.innerHTML = `
+                    <div class="text-center p-10 bg-white/50 rounded-3xl border border-dashed border-slate-200 fade-in">
+                        <p class="text-slate-400 font-medium italic">No se encontró el código "${query}".</p>
+                        <a href="https://wa.me/${WHATSAPP_PHONE}?text=Hola, busco el nro de parte: ${query}" 
+                           class="inline-block mt-4 text-blue-500 font-bold text-sm border-b border-blue-200">Consultar con un experto →</a>
+                    </div>`;
+            }
         }
     </script>
 </body>
