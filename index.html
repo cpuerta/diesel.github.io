@@ -3,140 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscador de Repuestos Diesel</title>
+    <title>Diesel Search | Supabase</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        
-        body { 
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; 
-        }
-
-        .search-input:focus { 
-            outline: none; 
-            border-color: #3b82f6; 
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05); 
-        }
-
-        /* Animación suave para la aparición de resultados */
-        .fade-in {
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-slate-50 flex flex-col items-center justify-center min-h-screen p-6">
 
-    <div class="w-full max-w-2xl">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-gray-800 tracking-tight">Diesel Parts</h1>
-            <p class="text-gray-400 mt-2 text-sm uppercase tracking-widest font-semibold">Consulta de Inventario</p>
-        </div>
+    <div class="w-full max-w-xl text-center">
+        <h1 class="text-2xl font-bold text-slate-800 mb-8">Diesel Parts Cloud</h1>
 
-        <div class="relative group">
+        <div class="relative">
             <input 
-                type="text" 
-                id="partSearch" 
-                placeholder="Introduce número de parte y pulsa Enter..." 
-                class="search-input w-full p-6 text-xl rounded-3xl border border-gray-200 shadow-sm transition-all duration-300 text-gray-700 bg-white"
-                autocomplete="off"
+                type="text" id="partSearch" 
+                placeholder="Número de parte + Enter..." 
+                class="w-full p-5 rounded-2xl border-none shadow-lg focus:ring-2 focus:ring-blue-500 text-lg outline-none"
                 autofocus
             >
-            
-            <div id="loader" class="hidden absolute right-6 top-6">
-                <svg class="animate-spin h-7 w-7 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+            <div id="loader" class="hidden absolute right-5 top-5">
+                <div class="animate-spin h-6 w-6 border-4 border-blue-500 border-t-transparent rounded-full"></div>
             </div>
         </div>
 
-        <div id="resultsArea" class="mt-10 opacity-0 transition-all duration-500">
-            </div>
-        
-        <div class="mt-20 text-center">
-            <p class="text-gray-300 text-xs">Sistema de búsqueda rápida v1.0</p>
-        </div>
+        <div id="resultsArea" class="mt-10 text-left"></div>
     </div>
 
     <script>
+        // 1. CONFIGURACIÓN (Reemplaza con tus datos de Supabase)
+        const SUPABASE_URL = 'https://pcsybwizwbmsihloqgwe.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjc3lid2l6d2Jtc2lobG9xZ3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODU5MjIsImV4cCI6MjA4ODY2MTkyMn0.Zduiwhmff4uSQecRjRZv714QrC0hF0mDqoW6ORqMvYc';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         const input = document.getElementById('partSearch');
         const resultsArea = document.getElementById('resultsArea');
         const loader = document.getElementById('loader');
 
-        // Escuchar la tecla Enter
-        input.addEventListener('keypress', function (e) {
+        input.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 const query = input.value.trim();
-                if (query.length > 0) {
-                    performSearch(query);
+                if (!query) return;
+
+                loader.classList.remove('hidden');
+                resultsArea.innerHTML = '';
+
+                // 2. BÚSQUEDA EN SUPABASE
+                // Buscamos coincidencia parcial en nro_parte o referencias
+                const { data, error } = await supabase
+                    .from('repuestos')
+                    .select('*')
+                    .or(`nro_parte.ilike.%${query}%,referencias.ilike.%${query}%`)
+                    .limit(1)
+                    .single();
+
+                loader.classList.add('hidden');
+
+                if (error) {
+                    resultsArea.innerHTML = '<p class="text-center text-slate-400">No se encontraron resultados.</p>';
+                } else {
+                    renderResult(data);
                 }
             }
         });
 
-        async function performSearch(query) {
-            // Estado inicial: mostrar carga
-            loader.classList.remove('hidden');
-            resultsArea.classList.add('opacity-0');
-
-            try {
-                // Conecta con tu script PHP que ya configuramos
-                const response = await fetch(`buscar.php?q=${encodeURIComponent(query)}`);
-                const data = await response.json();
-
-                loader.classList.add('hidden');
-                renderResult(data);
-            } catch (error) {
-                loader.classList.add('hidden');
-                console.error("Error en la búsqueda:", error);
-                showErrorMessage("Error al conectar con la base de datos.");
-            }
-        }
-
         function renderResult(item) {
-            resultsArea.innerHTML = '';
-            
-            // Si no hay resultados o hay error
-            if (!item || item.error) {
-                resultsArea.innerHTML = `
-                    <div class="text-center p-10 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <p class="text-gray-400 text-lg italic">No se encontró información para este número.</p>
-                    </div>`;
-            } else {
-                // Renderizado de tarjeta de repuesto con diseño jerárquico
-                resultsArea.innerHTML = `
-                    <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-blue-900/5 border border-blue-50 fade-in">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <h3 class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mb-2">Marca / Motor</h3>
-                                <p class="text-3xl font-semibold text-gray-800">${item.motor}</p>
-                            </div>
-                            <div>
-                                <h3 class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mb-2">Aplicación</h3>
-                                <p class="text-xl text-gray-600 font-medium">${item.aplicacion}</p>
-                            </div>
-                            <div class="col-span-1 md:col-span-2 pt-6 border-t border-gray-100">
-                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Detalles de Referencia</h3>
-                                <div class="flex flex-col gap-1">
-                                    <p class="text-2xl font-mono text-blue-700 break-all">${item.nro_parte}</p>
-                                    <p class="text-sm text-gray-400 font-medium">Ref: ${item.referencias}</p>
-                                </div>
-                            </div>
+            resultsArea.innerHTML = `
+                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 animate-fade-in">
+                    <div class="grid gap-4">
+                        <div class="border-b pb-2">
+                            <span class="text-[10px] font-bold text-blue-500 uppercase">Motor</span>
+                            <p class="text-xl font-semibold text-slate-800">${item.motor}</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-blue-500 uppercase">Aplicación</span>
+                            <p class="text-slate-600">${item.aplicacion}</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Identificación</span>
+                            <p class="text-lg font-mono text-blue-700">${item.nro_parte}</p>
+                            <p class="text-xs text-slate-400 mt-1">${item.referencias}</p>
                         </div>
                     </div>
-                `;
-            }
-            resultsArea.classList.remove('opacity-0');
-        }
-
-        function showErrorMessage(msg) {
-            resultsArea.innerHTML = `<p class="text-center text-red-400 text-sm font-medium">${msg}</p>`;
-            resultsArea.classList.remove('opacity-0');
+                </div>`;
         }
     </script>
 </body>
