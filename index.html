@@ -14,97 +14,110 @@
 </head>
 <body class="bg-slate-50 flex flex-col items-center justify-center min-h-screen p-6">
 
-    <div class="w-full max-w-xl">
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Diesel Parts</h1>
-            <p class="text-blue-500 text-xs uppercase tracking-[0.4em] mt-2 font-black">Inventario Digital</p>
-        </div>
+    <div class="relative group">
+    <input 
+        type="text" id="partSearch" 
+        placeholder="Marca, Aplicación o Nro de Parte..." 
+        class="w-full p-6 pr-16 rounded-[2rem] border-none shadow-2xl focus:ring-4 focus:ring-blue-100 text-xl outline-none transition-all bg-white text-slate-700"
+        autofocus autocomplete="off"
+    >
+    <button id="clearBtn" class="hidden absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    </button>
+</div>
 
-        <div class="relative group">
-            <input 
-                type="text" id="partSearch" 
-                placeholder="Nro de Parte + Enter..." 
-                class="w-full p-6 rounded-[2rem] border-none shadow-2xl focus:ring-4 focus:ring-blue-100 text-xl outline-none transition-all bg-white text-slate-700"
-                autofocus autocomplete="off"
-            >
-        </div>
+<div id="resultsArea" class="mt-8"></div>
 
-        <div id="resultsArea" class="mt-8"></div>
-        
-        <p class="mt-12 text-center text-slate-400 text-[10px] uppercase tracking-widest">© 2026 Sistema de Consulta Rápida</p>
-    </div>
+<script>
+    const WHATSAPP_PHONE = '584120000000'; 
+    const input = document.getElementById('partSearch');
+    const clearBtn = document.getElementById('clearBtn');
+    const resultsArea = document.getElementById('resultsArea');
 
-    <script>
-        // CONFIGURA TU WHATSAPP AQUÍ
-        const WHATSAPP_PHONE = '584142677071'; 
+    // Mostrar/Ocultar botón de limpiar
+    input.addEventListener('input', () => {
+        clearBtn.classList.toggle('hidden', input.value.length === 0);
+    });
 
-        const input = document.getElementById('partSearch');
-        const resultsArea = document.getElementById('resultsArea');
+    // Acción de limpiar
+    clearBtn.addEventListener('click', () => {
+        input.value = '';
+        resultsArea.innerHTML = '';
+        clearBtn.classList.add('hidden');
+        input.focus();
+    });
 
-        input.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                const query = input.value.trim().toUpperCase();
-                if (!query) return;
+    input.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            const query = input.value.trim().toUpperCase();
+            if (!query) return;
 
-                try {
-                    // Cargamos los datos del archivo local
-                    const response = await fetch('db.json');
-                    const data = await response.json();
+            try {
+                const response = await fetch('db.json');
+                const data = await response.json();
 
-                    // Buscamos coincidencia en nro_parte (p) o referencias (r)
-                    const item = data.find(i => 
-                        i.p.toUpperCase().includes(query) || 
-                        i.r.toUpperCase().includes(query)
-                    );
+                const matches = data.filter(i => 
+                    i.m.toUpperCase().includes(query) || 
+                    i.a.toUpperCase().includes(query) || 
+                    i.p.toUpperCase().includes(query) || 
+                    i.r.toUpperCase().includes(query)
+                );
 
-                    renderResult(item, query);
-                } catch (error) {
-                    console.error("Error cargando db.json:", error);
-                    resultsArea.innerHTML = '<p class="text-red-400 text-center text-sm">Error al cargar la base de datos.</p>';
-                }
-            }
-        });
-
-        function renderResult(item, query) {
-            resultsArea.innerHTML = '';
-            
-            if (item) {
-                const msg = encodeURIComponent(`Hola, encontré este repuesto en el buscador:\nMotor: ${item.m}\nNro Parte: ${item.p}\nAplicación: ${item.a}`);
-
-                resultsArea.innerHTML = `
-                    <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-white fade-in">
-                        <div class="flex flex-col gap-6">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Motor</span>
-                                    <p class="text-2xl font-bold text-slate-800">${item.m}</p>
-                                    <p class="text-slate-500 text-sm mt-1">${item.a}</p>
-                                </div>
-                                <span class="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase italic">Disponible</span>
-                            </div>
-
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase">Identificación</span>
-                                <p class="text-2xl font-mono text-blue-800 font-bold break-all">${item.p}</p>
-                                <p class="text-[10px] text-slate-400 mt-1 uppercase font-semibold">Ref: ${item.r}</p>
-                            </div>
-
-                            <a href="https://wa.me/${WHATSAPP_PHONE}?text=${msg}" target="_blank"
-                               class="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-center py-5 rounded-2xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3">
-                                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.588-5.946 0-6.556 5.332-11.888 11.888-11.888 3.176 0 6.161 1.237 8.404 3.48s3.481 5.229 3.481 8.404c0 6.556-5.332 11.888-11.888 11.888-2.016 0-3.991-.512-5.742-1.487l-6.242 1.638zm5.918-3.513c1.448.859 3.15 1.314 4.887 1.314 5.244 0 9.512-4.268 9.512-9.512 0-2.541-.989-4.93-2.785-6.726s-4.185-2.785-6.726-2.785c-5.245 0-9.512 4.268-9.512 9.512 0 1.9.555 3.754 1.605 5.36l-1.054 3.849 3.953-1.036z"/></svg>
-                                Consultar Disponibilidad
-                            </a>
-                        </div>
-                    </div>`;
-            } else {
-                resultsArea.innerHTML = `
-                    <div class="text-center p-10 bg-white/50 rounded-3xl border border-dashed border-slate-200 fade-in">
-                        <p class="text-slate-400 font-medium italic">No se encontró el código "${query}".</p>
-                        <a href="https://wa.me/${WHATSAPP_PHONE}?text=Hola, busco el nro de parte: ${query}" 
-                           class="inline-block mt-4 text-blue-500 font-bold text-sm border-b border-blue-200">Consultar con un experto →</a>
-                    </div>`;
+                renderResults(matches, query);
+            } catch (error) {
+                resultsArea.innerHTML = '<p class="text-red-400 text-center">Error al cargar datos.</p>';
             }
         }
-    </script>
+    });
+
+    function renderResults(matches, query) {
+        resultsArea.innerHTML = '';
+        if (matches.length > 0) {
+            const countText = document.createElement('p');
+            countText.className = 'text-slate-400 text-[10px] mb-4 ml-4 uppercase tracking-[0.2em] font-black';
+            countText.innerText = `${matches.length} Resultado(s) para "${query}"`;
+            resultsArea.appendChild(countText);
+
+            matches.forEach(item => {
+                const msg = encodeURIComponent(`Hola, me interesa este repuesto:\nMotor: ${item.m}\nNro Parte: ${item.p}\nAplicación: ${item.a}`);
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-[2rem] shadow-xl border border-white mb-6 fade-in';
+                card.innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-tighter">${item.m}</span>
+                                <p class="text-xl font-bold text-slate-800 leading-tight mt-1">${item.a}</p>
+                            </div>
+                            <div class="flex items-center gap-1 text-green-600">
+                                <span class="relative flex h-2 w-2">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                <span class="text-[9px] font-bold uppercase">Stock</span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Identificación técnica</span>
+                            <p class="text-xl font-mono text-slate-800 font-bold break-all">${item.p}</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Ref: ${item.r}</p>
+                        </div>
+                        <a href="https://wa.me/${WHATSAPP_PHONE}?text=${msg}" target="_blank"
+                           class="w-full bg-slate-900 hover:bg-black text-white text-center py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2">
+                            Consultar vía WhatsApp
+                        </a>
+                    </div>`;
+                resultsArea.appendChild(card);
+            });
+        } else {
+            resultsArea.innerHTML = `<div class="text-center p-10 bg-white/50 rounded-3xl border border-dashed border-slate-200 fade-in">
+                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Sin coincidencias para "${query}"</p>
+                <a href="https://wa.me/${WHATSAPP_PHONE}?text=Hola, busco: ${query}" class="inline-block mt-4 text-blue-600 font-bold text-xs border-b-2 border-blue-100">HABLAR CON UN ASESOR</a>
+            </div>`;
+        }
+    }
+</script>
 </body>
 </html>
